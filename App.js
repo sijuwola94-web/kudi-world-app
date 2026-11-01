@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView } from 'react-native';
 
 export default function App() {
@@ -7,6 +7,9 @@ export default function App() {
   const [fromWallet, setFromWallet] = useState('NGN');
   const [toWallet, setToWallet] = useState('CVE');
   const [username, setUsername] = useState('');
+  const [bankName, setBankName] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [verifiedName, setVerifiedName] = useState('');
 
   const wallets = [
     { code: 'NGN', name: 'Nigerian Naira', balance: 850000, symbol: '₦', flag: '🇳🇬' },
@@ -29,45 +32,41 @@ export default function App() {
     let result = fromWallet === 'NGN' && toWallet === 'CVE' ? amt * rates.NGN_TO_CVE : amt * rates.CVE_TO_NGN;
     const fee = result * 0.01;
     const final = result - fee;
-    Alert.alert('KUDI WORLD Convert', `Send: ${amt} ${fromWallet}\nGet: ${final.toFixed(2)} ${toWallet}\nFee (1%): ${fee.toFixed(2)}\n\nFor BCN: 50% fee share`);
+    Alert.alert('KUDI WORLD Convert', `Send: ${amt} ${fromWallet}\nGet: ${final.toFixed(2)} ${toWallet}\nFee: ${fee.toFixed(2)}\nBCN Share: 50%`);
     setAmount('');
   };
 
   const handleSendUser = () => {
     if (!username) return Alert.alert('Enter @username');
-    Alert.alert('KUDI WORLD', `Sent to @${username} - FREE (like Instagram)`);
+    Alert.alert('KUDI WORLD', `Sent to @${username} - FREE`);
     setUsername('');
+  };
+
+  const handleVerifyBank = () => {
+    if (accountNumber.length < 5) return Alert.alert('Enter account number');
+    const mockNames = { 'BCN': 'JOAO SILVA CABRAL', 'BCA': 'MARIA SANTOS LOPES', 'GTB': 'CHINEDU OKAFOR', 'Access': 'SIJUWOLA OLUWASEUN' };
+    const name = mockNames[bankName] || 'KUDI WORLD USER';
+    setVerifiedName(name);
+    Alert.alert('BCN Verified ✓', `Account: ${accountNumber}\nName: ${name}\nBank: ${bankName}`);
+  };
+
+  const handleSendBank = () => {
+    if (!verifiedName) return Alert.alert('Verify account first');
+    Alert.alert('KUDI WORLD Bank Send', `Sending ${amount} to\n${verifiedName}\n${bankName} - ${accountNumber}\nFee: 1%`);
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER - K BIG, UDI small + Gold Circle K */}
       <View style={styles.header}>
-        <View style={styles.logoCircle}>
-          <Text style={styles.logoK}>K</Text>
-        </View>
-        <View>
-          <Text style={styles.headerTitle}><Text style={styles.kBig}>K</Text><Text style={styles.udiSmall}>UDI</Text> WORLD</Text>
-          <Text style={styles.headerSub}>All Money, One App • Praia, CV</Text>
-        </View>
+        <View style={styles.logoCircle}><Text style={styles.logoK}>K</Text></View>
+        <View><Text style={styles.headerTitle}><Text style={styles.kBig}>K</Text><Text style={styles.udiSmall}>UDI</Text> WORLD</Text><Text style={styles.headerSub}>All Money, One App • Praia</Text></View>
       </View>
 
       {activeTab === 'wallets' && (
         <ScrollView>
-          <View style={styles.totalCard}>
-            <Text style={styles.totalLabel}>TOTAL BALANCE</Text>
-            <Text style={styles.totalAmount}>$2,307.50 USD</Text>
-            <Text style={styles.totalSub}>≈ 850,000 NGN • 10 wallets</Text>
-          </View>
+          <View style={styles.totalCard}><Text style={styles.totalLabel}>TOTAL BALANCE</Text><Text style={styles.totalAmount}>$2,307.50 USD</Text><Text style={styles.totalSub}>10 wallets • Gold K</Text></View>
           {wallets.map((w) => (
-            <View key={w.code} style={styles.walletCard}>
-              <Text style={styles.walletFlag}>{w.flag}</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.walletCode}>{w.code} - {w.name}</Text>
-                <Text style={styles.walletBal}>{w.symbol} {w.balance.toLocaleString()}</Text>
-              </View>
-              <View style={styles.kMini}><Text style={styles.kMiniText}>K</Text></View>
-            </View>
+            <View key={w.code} style={styles.walletCard}><Text style={styles.walletFlag}>{w.flag}</Text><View style={{ flex: 1 }}><Text style={styles.walletCode}>{w.code} - {w.name}</Text><Text style={styles.walletBal}>{w.symbol} {w.balance.toLocaleString()}</Text></View><View style={styles.kMini}><Text style={styles.kMiniText}>K</Text></View></View>
           ))}
         </ScrollView>
       )}
@@ -76,15 +75,10 @@ export default function App() {
         <View style={styles.tabContent}>
           <Text style={styles.tabTitle}>CONVERT • Gold K</Text>
           <View style={styles.convertBox}>
-            <Text style={styles.label}>From: {fromWallet}</Text>
-            <TouchableOpacity onPress={() => { setFromWallet(fromWallet === 'NGN' ? 'CVE' : 'NGN'); setToWallet(toWallet === 'NGN' ? 'CVE' : 'NGN'); }}>
-              <Text style={styles.switchBtn}>🔄 Switch to {fromWallet === 'NGN' ? 'CVE → NGN' : 'NGN → CVE'}</Text>
-            </TouchableOpacity>
+            <Text style={styles.label}>From: {fromWallet} → To: {toWallet}</Text>
+            <TouchableOpacity onPress={() => { setFromWallet(fromWallet === 'NGN' ? 'CVE' : 'NGN'); setToWallet(toWallet === 'NGN' ? 'CVE' : 'NGN'); }}><Text style={styles.switchBtn}>🔄 Switch</Text></TouchableOpacity>
             <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#888" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-            <Text style={styles.resultText}>To: {toWallet} • Rate: 1 NGN = 0.22 CVE</Text>
-            <TouchableOpacity style={styles.goldBtn} onPress={handleConvert}>
-              <Text style={styles.goldBtnText}>Convert with Gold K</Text>
-            </TouchableOpacity>
+            <TouchableOpacity style={styles.goldBtn} onPress={handleConvert}><Text style={styles.goldBtnText}>Convert with Gold K</Text></TouchableOpacity>
           </View>
         </View>
       )}
@@ -95,18 +89,30 @@ export default function App() {
           <View style={styles.convertBox}>
             <TextInput style={styles.input} placeholder="@username like Instagram" placeholderTextColor="#888" value={username} onChangeText={setUsername} />
             <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#888" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-            <TouchableOpacity style={styles.goldBtn} onPress={handleSendUser}>
-              <Text style={styles.goldBtnText}>Send Free</Text>
-            </TouchableOpacity>
+            <TouchableOpacity style={styles.goldBtn} onPress={handleSendUser}><Text style={styles.goldBtnText}>Send Free</Text></TouchableOpacity>
           </View>
         </View>
       )}
 
-      {/* BOTTOM NAV */}
+      {activeTab === 'bank' && (
+        <View style={styles.tabContent}>
+          <Text style={styles.tabTitle}>SEND TO REAL BANK • BCN</Text>
+          <View style={styles.convertBox}>
+            <TextInput style={styles.input} placeholder="Bank: BCN, BCA, GTB, Access" value={bankName} onChangeText={setBankName} placeholderTextColor="#888" />
+            <TextInput style={styles.input} placeholder="Account Number" value={accountNumber} onChangeText={setAccountNumber} keyboardType="numeric" placeholderTextColor="#888" />
+            <TouchableOpacity style={[styles.goldBtn, {backgroundColor: '#0A3D1F', borderWidth: 1, borderColor: '#FFD700'}]} onPress={handleVerifyBank}><Text style={[styles.goldBtnText, {color: '#FFD700'}]}>Verify with Gold K ✓</Text></TouchableOpacity>
+            {verifiedName ? <Text style={{color: '#FFD700', marginTop: 15, fontWeight: '700'}}>✓ Verified: {verifiedName}</Text> : null}
+            <TextInput style={[styles.input, {marginTop: 15}]} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888" />
+            <TouchableOpacity style={styles.goldBtn} onPress={handleSendBank}><Text style={styles.goldBtnText}>Send to Bank</Text></TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => setActiveTab('wallets')} style={[styles.navBtn, activeTab === 'wallets' && styles.navActive]}><Text style={styles.navText}>💼 Wallets</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('convert')} style={[styles.navBtn, activeTab === 'convert' && styles.navActive]}><Text style={styles.navText}>🔄 Convert</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('send')} style={[styles.navBtn, activeTab === 'send' && styles.navActive]}><Text style={styles.navText}>👤 Send</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveTab('wallets')} style={[styles.navBtn, activeTab === 'wallets' && styles.navActive]}><Text style={styles.navText}>💼</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveTab('convert')} style={[styles.navBtn, activeTab === 'convert' && styles.navActive]}><Text style={styles.navText}>🔄</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveTab('send')} style={[styles.navBtn, activeTab === 'send' && styles.navActive]}><Text style={styles.navText}>👤</Text></TouchableOpacity>
+        <TouchableOpacity onPress={() => setActiveTab('bank')} style={[styles.navBtn, activeTab === 'bank' && styles.navActive]}><Text style={styles.navText}>🏦</Text></TouchableOpacity>
       </View>
     </SafeAreaView>
   );
@@ -137,11 +143,10 @@ const styles = StyleSheet.create({
   label: { color: '#fff', marginBottom: 10 },
   switchBtn: { color: '#FFD700', marginBottom: 15, fontWeight: '700' },
   input: { backgroundColor: '#000', color: '#fff', padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#333', marginBottom: 15 },
-  resultText: { color: '#888', marginBottom: 15 },
   goldBtn: { backgroundColor: '#FFD700', padding: 16, borderRadius: 12, alignItems: 'center' },
   goldBtnText: { color: '#000', fontWeight: '900', fontSize: 16 },
   bottomNav: { flexDirection: 'row', backgroundColor: '#111', padding: 10, borderTopWidth: 1, borderTopColor: '#333' },
   navBtn: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10, marginHorizontal: 5 },
   navActive: { backgroundColor: '#FFD700' },
-  navText: { fontWeight: '700', color: '#fff' },
+  navText: { fontWeight: '700', color: '#fff', fontSize: 18 },
 });
