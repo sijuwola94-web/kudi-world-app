@@ -4,6 +4,10 @@
     "slug": "kudi",
     "owner": "sijuwola",
     "version": "1.0.0",
+    "splash": {
+      "backgroundColor": "#000000",
+      "resizeMode": "contain"
+    },
     "ios": {
       "bundleIdentifier": "com.kudiworld.app",
       "infoPlist": {
