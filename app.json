@@ -5,11 +5,14 @@
     "owner": "sijuwola",
     "projectId": "2dabf736-4d23-4aa2-95e4-28660d49e762",
     "version": "1.0.0",
+    "ios": {
+      "bundleIdentifier": "com.kudiworld.app",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
+    },
     "android": {
       "package": "com.kudiworld.app"
-    },
-    "ios": {
-      "bundleIdentifier": "com.kudiworld.app"
     },
     "extra": {
       "eas": {
