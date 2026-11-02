@@ -2,242 +2,305 @@
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView } from 'react-native';
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState('wallets');
+  // AUTH
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [loginMethod, setLoginMethod] = useState('phone');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  
+  // SECURITY SAFE
+  const [sixDigitPin, setSixDigitPin] = useState('');
+  const [pinSet, setPinSet] = useState(false);
+  const [transferPin, setTransferPin] = useState('');
+  const [biometricEnabled, setBiometricEnabled] = useState(false);
+  const [countryCode, setCountryCode] = useState('NG');
+  const [idNumber, setIdNumber] = useState('');
+  const [idVerified, setIdVerified] = useState(false);
+
+  const [activeTab, setActiveTab] = useState('cards');
   const [amount, setAmount] = useState('');
   const [fromWallet, setFromWallet] = useState('NGN');
   const [toWallet, setToWallet] = useState('CVE');
-  const [username, setUsername] = useState('');
   const [bankName, setBankName] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [verifiedName, setVerifiedName] = useState('');
 
-  // REFERRAL SYSTEM - ALL COUNTRY
+  // CARD - LINK + VIRTUAL
+  const [linkedCards, setLinkedCards] = useState([]); // real bank cards linked
+  const [kudiCard, setKudiCard] = useState(null); // virtual card
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvv, setCardCvv] = useState('');
+  const [cardOtp, setCardOtp] = useState('');
+  const [cardOtpSent, setCardOtpSent] = useState(false);
+
+  // REFERRAL 800/700 50+250k
   const [referralCode] = useState('sijuwola94');
-  const [referrals, setReferrals] = useState([]); // {phone, country, idVerified}
-  const [bonusBalance, setBonusBalance] = useState(0);
+  const [referrals, setReferrals] = useState([]);
+  const [referralBonus, setReferralBonus] = useState(0);
   const [pendingBonus, setPendingBonus] = useState(0);
-  const [loginStreak, setLoginStreak] = useState(1);
-  const [totalWithdrawn, setTotalWithdrawn] = useState(0);
-  const [phoneNumber, setPhoneNumber] = useState('');
-  const [countryCode, setCountryCode] = useState('NG');
-  const [idNumber, setIdNumber] = useState('');
-  const [idVerified, setIdVerified] = useState(false);
   const [referredPhone, setReferredPhone] = useState('');
 
-  const wallets = [
-    { code: 'NGN', name: 'Nigerian Naira', balance: 850000, symbol: '₦', flag: '🇳🇬' },
-    { code: 'CVE', name: 'Cape Verde Escudo', balance: 125000, symbol: '$', flag: '🇨🇻' },
-    { code: 'USD', name: 'US Dollar', balance: 1200, symbol: '$', flag: '🇺🇸' },
-    { code: 'EUR', name: 'Euro', balance: 850, symbol: '€', flag: '🇪🇺' },
-    { code: 'GBP', name: 'British Pound', balance: 650, symbol: '£', flag: '🇬🇧' },
-    { code: 'GHS', name: 'Ghana Cedis', balance: 5200, symbol: '₵', flag: '🇬🇭' },
-    { code: 'ZAR', name: 'South African Rand', balance: 15000, symbol: 'R', flag: '🇿🇦' },
-    { code: 'KES', name: 'Kenya Shilling', balance: 95000, symbol: 'KSh', flag: '🇰🇪' },
-    { code: 'XOF', name: 'West African CFA', balance: 450000, symbol: 'CFA', flag: '🇸🇳' },
-    { code: 'USDT', name: 'Tether', balance: 500, symbol: '$', flag: '₮' },
-  ];
-
-  const rates = { NGN_TO_CVE: 0.22, CVE_TO_NGN: 4.5 };
-  const REF_BONUS = 1500;
-  const LOGIN_BONUS_TOTAL = 700;
+  const CARD_FEE = 3452;
+  const REF_FOR_ME = 800;
   const MIN_REF = 50;
-  const WITHDRAW_LIMIT = 250000;
+  const MIN_TX = 2;
+  const REF_WITHDRAW_MIN = 250000;
 
-  const handleConvert = () => {
-    const amt = parseFloat(amount);
-    if (!amt) return Alert.alert('Enter amount');
-    let result = fromWallet === 'NGN' && toWallet === 'CVE' ? amt * rates.NGN_TO_CVE : amt * rates.CVE_TO_NGN;
-    const fee = result * 0.01;
-    const final = result - fee;
-    Alert.alert('KUDI WORLD Convert', `Send: ${amt} ${fromWallet}\nGet: ${final.toFixed(2)} ${toWallet}\nFee: ${fee.toFixed(2)}\nBCN Share: 50%`);
-    setAmount('');
+  // AUTH
+  const handleSendOtp = () => {
+    if (loginMethod==='phone' && !phoneNumber) return Alert.alert('Enter Phone');
+    if (loginMethod==='email' && !email) return Alert.alert('Enter Email');
+    setOtpSent(true);
+    Alert.alert('OTP Sent', `Code to ${loginMethod==='phone'?phoneNumber:email}: 123456 (demo)`);
+  };
+  const handleVerifyOtp = () => {
+    if (otp.length<4) return Alert.alert('Enter OTP');
+    if (!pinSet) Alert.alert('Login OK', 'Set 6-digit SAFE PIN + Biometric');
+    else setIsLoggedIn(true);
+  };
+  const handleSetSixDigitPin = () => {
+    if (sixDigitPin.length!==6) return Alert.alert('6-digit PIN required for SAFE');
+    setPinSet(true);
+    Alert.alert('6-digit Secured ✓');
+  };
+  const handleEnableBiometric = () => {
+    setBiometricEnabled(true);
+    Alert.alert('Biometric Enabled ✓ - Face/Finger for transfer + card');
+    setIsLoggedIn(true);
   };
 
-  const handleSendUser = () => {
-    if (!username) return Alert.alert('Enter @username');
-    Alert.alert('KUDI WORLD', `Sent to @${username} - FREE`);
-    setUsername('');
-  };
-
-  const handleVerifyBank = () => {
-    if (accountNumber.length < 5) return Alert.alert('Enter account number');
-    const mockNames = { 'BCN': 'JOAO SILVA CABRAL', 'BCA': 'MARIA SANTOS LOPES', 'GTB': 'CHINEDU OKAFOR', 'Access': 'SIJUWOLA OLUWASEUN' };
-    const name = mockNames[bankName] || 'KUDI WORLD USER';
-    setVerifiedName(name);
-    Alert.alert('BCN Verified ✓', `Account: ${accountNumber}\nName: ${name}\nBank: ${bankName}`);
-  };
-
-  const handleSendBank = () => {
-    if (!verifiedName) return Alert.alert('Verify account first');
-    Alert.alert('KUDI WORLD Bank Send', `Sending ${amount} to\n${verifiedName}\n${bankName} - ${accountNumber}\nFee: 1%`);
-  };
-
-  // NEW FUNCTIONS
   const handleVerifyID = () => {
-    if (!phoneNumber || !idNumber) return Alert.alert('Enter Phone + Country ID');
-    if (idNumber.length < 6) return Alert.alert('ID too short');
+    if (!idNumber) return Alert.alert('Enter Country ID');
     setIdVerified(true);
-    Alert.alert('ID Verified ✓', `Phone: ${phoneNumber}\nCountry: ${countryCode}\nID: ${idNumber}\nAll countries OK`);
+    Alert.alert('ID Verified Secure ✓');
+  };
+
+  // CARD FUNCTIONS
+  const handleLinkCard = () => {
+    if (!pinSet) return Alert.alert('Set 6-digit PIN first - Safe');
+    if (cardNumber.length<12) return Alert.alert('Enter valid card number');
+    if (!cardExpiry || !cardCvv) return Alert.alert('Enter Expiry + CVV');
+    setCardOtpSent(true);
+    Alert.alert('Card OTP Sent', `OTP sent to ${phoneNumber || email} to link card ending ${cardNumber.slice(-4)}`);
+  };
+
+  const handleVerifyCardOtp = () => {
+    if (cardOtp.length<4) return Alert.alert('Enter Card OTP');
+    if (transferPin.length!==6) return Alert.alert('Enter 6-digit Transfer PIN');
+    if (transferPin!==sixDigitPin) return Alert.alert('Wrong PIN - Safe protected');
+    const newCard = { number: cardNumber.slice(-4), expiry: cardExpiry, bank: bankName || 'VISA', type: 'Linked Bank Card' };
+    setLinkedCards([...linkedCards, newCard]);
+    Alert.alert('Card Linked ✓', `Card ****${cardNumber.slice(-4)} linked\nCan Add Funds / Withdraw + OTP\nSecure with PIN + Biometric`);
+    setCardNumber(''); setCardExpiry(''); setCardCvv(''); setCardOtp(''); setCardOtpSent(false); setTransferPin('');
+  };
+
+  const handleCreateKudiCard = () => {
+    if (!idVerified) return Alert.alert('Verify Country ID first - To create card for all countries');
+    if (!pinSet) return Alert.alert('Set 6-digit PIN first');
+    if (transferPin!==sixDigitPin) return Alert.alert('Enter 6-digit PIN to pay card fee');
+    // Create virtual card
+    const newKudiCard = {
+      number: '4523 1488 9234 7812',
+      expiry: '12/29',
+      cvv: '123',
+      name: 'KUDI WORLD USER',
+      balance: 0,
+      fee: CARD_FEE
+    };
+    setKudiCard(newKudiCard);
+    Alert.alert('KUDI Card Created ✓', `Virtual Card for Online Shopping\nNumber: 4523 1488 9234 7812\nFee: ₦${CARD_FEE} for ALL countries (NG, CV, GH, ZA, KE, US)\nUse for Netflix, Amazon, Facebook Ads - Secure with PIN + OTP + Biometric`);
+    setTransferPin('');
+  };
+
+  const handleAddFundsWithCard = () => {
+    if (!kudiCard && linkedCards.length===0) return Alert.alert('Link card or create KUDI card first');
+    if (!amount) return Alert.alert('Enter amount');
+    if (transferPin.length!==6) return Alert.alert('Enter 6-digit Transfer PIN + OTP');
+    Alert.alert('Add Funds ✓', `Adding ₦${amount} to KUDI from card ****${linkedCards[0]?.number || 'KUDI'}\nOTP + PIN + Biometric Verified\nAll countries OK`);
+    setAmount(''); setTransferPin('');
+  };
+
+  const handleWithdrawWithCard = () => {
+    if (!amount) return Alert.alert('Enter amount');
+    if (transferPin.length!==6) return Alert.alert('Enter 6-digit Transfer PIN + OTP');
+    Alert.alert('Withdraw to Card ✓', `Withdrawing ₦${amount} to card\nOTP + PIN + Biometric\nFee 1% - All countries`);
+    setAmount(''); setTransferPin('');
   };
 
   const handleAddReferral = () => {
-    if (!idVerified) return Alert.alert('Verify YOUR ID first - Phone + Country ID');
-    if (!referredPhone) return Alert.alert('Enter referred phone');
-    // Check duplicate ID
-    if (referrals.find(r => r.phone === referredPhone)) return Alert.alert('Already referred');
-    
-    const newRef = { phone: referredPhone, country: countryCode, idVerified: true, date: new Date().toLocaleDateString() };
+    if (!referredPhone) return Alert.alert('Enter phone');
+    const newRef = { phone: referredPhone, country: countryCode, idVerified: false, txCount: 0, eligible: false };
     setReferrals([...referrals, newRef]);
-    setBonusBalance(bonusBalance + REF_BONUS);
-    Alert.alert('Referral Bonus ✓', `+${REF_BONUS} NGN added! Pending withdrawal.\n${referrals.length + 1}/${MIN_REF}`);
+    setPendingBonus(pendingBonus+REF_FOR_ME);
     setReferredPhone('');
   };
-
-  const handleLoginBonus = () => {
-    if (loginStreak >= 7) return Alert.alert('700 NGN already claimed');
-    const daily = 100;
-    setLoginStreak(loginStreak + 1);
-    setBonusBalance(bonusBalance + daily);
-    Alert.alert('Login Bonus', `+${daily} NGN Day ${loginStreak}/7\nTotal login: ${loginStreak * 100}/700 NGN`);
+  const handleVerifyReferralKYC = (i) => {
+    const u=[...referrals]; u[i].idVerified=true;
+    if (u[i].txCount>=MIN_TX && u[i].idVerified && !u[i].eligible) { u[i].eligible=true; setReferralBonus(referralBonus+REF_FOR_ME); setPendingBonus(Math.max(0,pendingBonus-REF_FOR_ME)); }
+    setReferrals(u);
+  };
+  const handleAddTransaction = (i) => {
+    const u=[...referrals]; u[i].txCount+=1;
+    if (u[i].txCount>=MIN_TX && u[i].idVerified && !u[i].eligible) { u[i].eligible=true; setReferralBonus(referralBonus+REF_FOR_ME); setPendingBonus(Math.max(0,pendingBonus-REF_FOR_ME)); }
+    setReferrals(u);
   };
 
-  const handleWithdrawBonus = () => {
-    const verifiedCount = referrals.filter(r => r.idVerified).length;
-    if (!idVerified) return Alert.alert('Verify your Phone + Country ID first');
-    if (verifiedCount < MIN_REF) return Alert.alert(`Need ${MIN_REF} verified - You have ${verifiedCount}`);
-    if (bonusBalance <= 0) return Alert.alert('No bonus to withdraw');
-    if (totalWithdrawn + bonusBalance > WITHDRAW_LIMIT) return Alert.alert(`Limit ${WITHDRAW_LIMIT} NGN reached`);
-    
-    Alert.alert('Withdraw Success', `Withdrawing ${bonusBalance} NGN to ${verifiedName || bankName} ${accountNumber}\nPhone: ${phoneNumber} Verified ✓`);
-    setTotalWithdrawn(totalWithdrawn + bonusBalance);
-    setBonusBalance(0);
-  };
+  const eligibleCount = referrals.filter(r=>r.eligible).length;
+  const canWithdrawReferral = eligibleCount>=MIN_REF && referralBonus>=REF_WITHDRAW_MIN;
+
+  // LOGIN SCREEN
+  if (!isLoggedIn) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}><View style={styles.logoCircle}><Text style={styles.logoK}>K</Text></View><View><Text style={styles.headerTitle}><Text style={styles.kBig}>K</Text><Text style={styles.udiSmall}>UDI</Text> WORLD</Text><Text style={styles.headerSub}>Card 3452 NGN • 6-digit • Biometric • All Countries</Text></View></View>
+        <ScrollView style={styles.tabContent}>
+          <Text style={styles.tabTitle}>LOGIN / SIGN UP - Phone or Email</Text>
+          <View style={styles.convertBox}>
+            <View style={{flexDirection:'row', marginBottom:12}}>
+              <TouchableOpacity onPress={()=>setLoginMethod('phone')} style={[styles.goldBtn,{flex:1,marginRight:6,backgroundColor:loginMethod==='phone'?'#FFD700':'#111',borderWidth:1,borderColor:'#FFD700'}]}><Text style={[styles.goldBtnText,{color:loginMethod==='phone'?'#000':'#FFD700'}]}>Phone</Text></TouchableOpacity>
+              <TouchableOpacity onPress={()=>setLoginMethod('email')} style={[styles.goldBtn,{flex:1,marginLeft:6,backgroundColor:loginMethod==='email'?'#FFD700':'#111',borderWidth:1,borderColor:'#FFD700'}]}><Text style={[styles.goldBtnText,{color:loginMethod==='email'?'#000':'#FFD700'}]}>Email</Text></TouchableOpacity>
+            </View>
+            {loginMethod==='phone'?<TextInput style={styles.input} placeholder="Phone +234 +238 All countries" value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" placeholderTextColor="#888"/>:<TextInput style={styles.input} placeholder="Email" value={email} onChangeText={setEmail} keyboardType="email-address" placeholderTextColor="#888"/>}
+            <TouchableOpacity style={styles.goldBtn} onPress={handleSendOtp}><Text style={styles.goldBtnText}>Send OTP</Text></TouchableOpacity>
+            {otpSent&&<><TextInput style={[styles.input,{marginTop:12}]} placeholder="OTP" value={otp} onChangeText={setOtp} keyboardType="numeric" placeholderTextColor="#888"/><TouchableOpacity style={[styles.goldBtn,{backgroundColor:'#0A3D1F',borderWidth:1,borderColor:'#FFD700'}]} onPress={handleVerifyOtp}><Text style={[styles.goldBtnText,{color:'#FFD700'}]}>Verify OTP</Text></TouchableOpacity></>}
+            <View style={{marginTop:20,borderTopWidth:1,borderTopColor:'#333',paddingTop:15}}>
+              <Text style={styles.label}>Set 6-Digit SAFE PIN + Biometric + Card 3452 NGN</Text>
+              <TextInput style={styles.input} placeholder="6-digit PIN" value={sixDigitPin} onChangeText={setSixDigitPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/>
+              <TouchableOpacity style={[styles.goldBtn,{backgroundColor:pinSet?'#0A3D1F':'#FFD700'}]} onPress={handleSetSixDigitPin}><Text style={[styles.goldBtnText,{color:pinSet?'#FFD700':'#000'}]}>{pinSet?'✓ 6-digit Secured':'Set 6-digit SAFE PIN'}</Text></TouchableOpacity>
+              <TouchableOpacity style={[styles.goldBtn,{marginTop:8,backgroundColor:biometricEnabled?'#0A3D1F':'#111',borderWidth:1,borderColor:'#FFD700'}]} onPress={handleEnableBiometric}><Text style={[styles.goldBtnText,{color:'#FFD700'}]}>{biometricEnabled?'✓ Biometric Enabled':'Enable Biometric + Enter App'}</Text></TouchableOpacity>
+            </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.logoCircle}><Text style={styles.logoK}>K</Text></View>
-        <View><Text style={styles.headerTitle}><Text style={styles.kBig}>K</Text><Text style={styles.udiSmall}>UDI</Text> WORLD</Text><Text style={styles.headerSub}>All Money, One App • {countryCode}</Text></View>
-      </View>
+      <View style={styles.header}><View style={styles.logoCircle}><Text style={styles.logoK}>K</Text></View><View><Text style={styles.headerTitle}><Text style={styles.kBig}>K</Text><Text style={styles.udiSmall}>UDI</Text> WORLD</Text><Text style={styles.headerSub}>Card ₦{CARD_FEE} All Countries • PIN + OTP + Biometric</Text></View><TouchableOpacity onPress={()=>setIsLoggedIn(false)} style={{marginLeft:'auto'}}><Text style={{color:'#FFD700',fontSize:11}}>Logout</Text></TouchableOpacity></View>
 
-      {activeTab === 'wallets' && (
-        <ScrollView>
-          <View style={styles.totalCard}><Text style={styles.totalLabel}>TOTAL BALANCE + BONUS</Text><Text style={styles.totalAmount}>$2,307.50 + ₦{bonusBalance.toLocaleString()}</Text><Text style={styles.totalSub}>{referrals.length}/{MIN_REF} referrals • {idVerified ? 'ID Verified ✓' : 'Verify ID'}</Text></View>
-          {wallets.map((w) => (
-            <View key={w.code} style={styles.walletCard}><Text style={styles.walletFlag}>{w.flag}</Text><View style={{ flex: 1 }}><Text style={styles.walletCode}>{w.code} - {w.name}</Text><Text style={styles.walletBal}>{w.symbol} {w.balance.toLocaleString()}</Text></View><View style={styles.kMini}><Text style={styles.kMiniText}>K</Text></View></View>
-          ))}
-        </ScrollView>
-      )}
-
-      {activeTab === 'convert' && (
-        <View style={styles.tabContent}>
-          <Text style={styles.tabTitle}>CONVERT • Gold K</Text>
-          <View style={styles.convertBox}>
-            <Text style={styles.label}>From: {fromWallet} → To: {toWallet}</Text>
-            <TouchableOpacity onPress={() => { setFromWallet(fromWallet === 'NGN' ? 'CVE' : 'NGN'); setToWallet(toWallet === 'NGN' ? 'CVE' : 'NGN'); }}><Text style={styles.switchBtn}>🔄 Switch</Text></TouchableOpacity>
-            <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#888" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-            <TouchableOpacity style={styles.goldBtn} onPress={handleConvert}><Text style={styles.goldBtnText}>Convert with Gold K</Text></TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {activeTab === 'send' && (
-        <View style={styles.tabContent}>
-          <Text style={styles.tabTitle}>SEND TO @USERNAME</Text>
-          <View style={styles.convertBox}>
-            <TextInput style={styles.input} placeholder="@username like Instagram" placeholderTextColor="#888" value={username} onChangeText={setUsername} />
-            <TextInput style={styles.input} placeholder="Amount" placeholderTextColor="#888" value={amount} onChangeText={setAmount} keyboardType="numeric" />
-            <TouchableOpacity style={styles.goldBtn} onPress={handleSendUser}><Text style={styles.goldBtnText}>Send Free</Text></TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {activeTab === 'bank' && (
-        <View style={styles.tabContent}>
-          <Text style={styles.tabTitle}>SEND TO REAL BANK • BCN</Text>
-          <View style={styles.convertBox}>
-            <TextInput style={styles.input} placeholder="Bank: BCN, BCA, GTB, Access" value={bankName} onChangeText={setBankName} placeholderTextColor="#888" />
-            <TextInput style={styles.input} placeholder="Account Number" value={accountNumber} onChangeText={setAccountNumber} keyboardType="numeric" placeholderTextColor="#888" />
-            <TouchableOpacity style={[styles.goldBtn, {backgroundColor: '#0A3D1F', borderWidth: 1, borderColor: '#FFD700'}]} onPress={handleVerifyBank}><Text style={[styles.goldBtnText, {color: '#FFD700'}]}>Verify with Gold K ✓</Text></TouchableOpacity>
-            {verifiedName ? <Text style={{color: '#FFD700', marginTop: 15, fontWeight: '700'}}>✓ Verified: {verifiedName}</Text> : null}
-            <TextInput style={[styles.input, {marginTop: 15}]} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888" />
-            <TouchableOpacity style={styles.goldBtn} onPress={handleSendBank}><Text style={styles.goldBtnText}>Send to Bank</Text></TouchableOpacity>
-          </View>
-        </View>
-      )}
-
-      {activeTab === 'referral' && (
+      {activeTab==='cards' && (
         <ScrollView style={styles.tabContent}>
-          <Text style={styles.tabTitle}>REFERRAL BONUS • 1500 + 700</Text>
+          <Text style={styles.tabTitle}>MY CARDS • Link + Create • 3452 NGN All Countries</Text>
           
           <View style={styles.convertBox}>
-            <Text style={styles.label}>Step 1: Verify YOUR Phone + Country ID (ALL Countries)</Text>
-            <TextInput style={styles.input} placeholder="Phone: +234... +238... +233..." value={phoneNumber} onChangeText={setPhoneNumber} keyboardType="phone-pad" placeholderTextColor="#888" />
-            <View style={{flexDirection: 'row'}}>
-              <TextInput style={[styles.input, {flex: 1, marginRight: 10}]} placeholder="Country: NG, CV, GH, ZA, KE" value={countryCode} onChangeText={setCountryCode} placeholderTextColor="#888" />
-              <TextInput style={[styles.input, {flex: 2}]} placeholder="ID Number: NIN, NIF, Ghana Card..." value={idNumber} onChangeText={setIdNumber} placeholderTextColor="#888" />
+            <Text style={styles.label}>KUDI WORLD Virtual Card - Buy Online (Netflix, Amazon, Ads)</Text>
+            {kudiCard ? (
+              <View style={{backgroundColor:'#FFD700', padding:15, borderRadius:12, marginBottom:12}}>
+                <Text style={{color:'#000', fontWeight:'900'}}>KUDI WORLD VIRTUAL CARD</Text>
+                <Text style={{color:'#000', fontSize:18, fontWeight:'900', marginTop:8}}>{kudiCard.number}</Text>
+                <View style={{flexDirection:'row', justifyContent:'space-between', marginTop:8}}>
+                  <Text style={{color:'#0A3D1F', fontWeight:'700'}}>{kudiCard.name}</Text><Text style={{color:'#0A3D1F'}}>{kudiCard.expiry} • CVV {kudiCard.cvv}</Text>
+                </View>
+                <Text style={{color:'#0A3D1F', fontSize:11, marginTop:6}}>Fee: ₦{CARD_FEE} All Countries • PIN + OTP + Biometric Secure • For online shopping</Text>
+              </View>
+            ) : (
+              <View style={{backgroundColor:'#000', padding:15, borderRadius:12, marginBottom:12, borderWidth:1, borderColor:'#FFD700', borderStyle:'dashed'}}>
+                <Text style={{color:'#888'}}>No KUDI Card yet - Create for ₦{CARD_FEE} - Works all countries</Text>
+                <TextInput style={[styles.input,{marginTop:10}]} placeholder="6-digit Transfer PIN to pay card fee" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/>
+                <TouchableOpacity style={styles.goldBtn} onPress={handleCreateKudiCard}><Text style={styles.goldBtnText}>Create KUDI Card - Pay ₦{CARD_FEE} (All Countries)</Text></TouchableOpacity>
+              </View>
+            )}
+
+            <Text style={[styles.label,{marginTop:10}]}>Add Funds / Withdraw with Card + OTP + PIN + Biometric</Text>
+            <TextInput style={styles.input} placeholder="Amount - Any big or small" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888"/>
+            <TextInput style={styles.input} placeholder="6-digit Transfer PIN" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/>
+            <View style={{flexDirection:'row'}}>
+              <TouchableOpacity onPress={handleAddFundsWithCard} style={[styles.goldBtn,{flex:1,marginRight:6}]}><Text style={styles.goldBtnText}>Add Funds with Card</Text></TouchableOpacity>
+              <TouchableOpacity onPress={handleWithdrawWithCard} style={[styles.goldBtn,{flex:1,marginLeft:6,backgroundColor:'#111',borderWidth:1,borderColor:'#FFD700'}]}><Text style={[styles.goldBtnText,{color:'#FFD700'}]}>Withdraw to Card</Text></TouchableOpacity>
             </View>
-            <TouchableOpacity style={[styles.goldBtn, {backgroundColor: idVerified ? '#0A3D1F' : '#FFD700'}]} onPress={handleVerifyID}><Text style={styles.goldBtnText}>{idVerified ? '✓ ID Verified' : 'Verify Phone + ID'}</Text></TouchableOpacity>
           </View>
 
-          <View style={[styles.convertBox, {marginTop: 15}]}>
-            <Text style={styles.label}>Your Referral Link: @{referralCode}</Text>
-            <Text style={{color: '#FFD700', fontWeight: '700', marginBottom: 10}}>Bonus: ₦{bonusBalance.toLocaleString()} | Pending: ₦{pendingBonus} | Withdrawn: ₦{totalWithdrawn}/{WITHDRAW_LIMIT}</Text>
-            <Text style={{color: '#fff', marginBottom: 10}}>{referrals.length}/{MIN_REF} Verified Referrals</Text>
-            <View style={{backgroundColor: '#000', height: 10, borderRadius: 5, marginBottom: 15}}><View style={{backgroundColor: '#FFD700', width: `${Math.min(100, (referrals.length/MIN_REF)*100)}%`, height: 10, borderRadius: 5}} /></View>
-            
-            <TextInput style={styles.input} placeholder="Enter Referred Phone + Country" value={referredPhone} onChangeText={setReferredPhone} keyboardType="phone-pad" placeholderTextColor="#888" />
-            <TouchableOpacity style={styles.goldBtn} onPress={handleAddReferral}><Text style={styles.goldBtnText}>Add Referral +1500 NGN</Text></TouchableOpacity>
+          <View style={[styles.convertBox,{marginTop:15}]}>
+            <Text style={styles.label}>Link Your Bank Card (GTB, Access, BCN, BCA) - For Add Funds / Withdraw</Text>
+            <TextInput style={styles.input} placeholder="Bank: GTB, Access, BCN, BCA" value={bankName} onChangeText={setBankName} placeholderTextColor="#888"/>
+            <TextInput style={styles.input} placeholder="Card Number: 4523 1234 5678 9012" value={cardNumber} onChangeText={setCardNumber} keyboardType="numeric" placeholderTextColor="#888"/>
+            <View style={{flexDirection:'row'}}>
+              <TextInput style={[styles.input,{flex:1,marginRight:8}]} placeholder="Expiry MM/YY" value={cardExpiry} onChangeText={setCardExpiry} placeholderTextColor="#888"/>
+              <TextInput style={[styles.input,{flex:1}]} placeholder="CVV" value={cardCvv} onChangeText={setCardCvv} keyboardType="numeric" secureTextEntry placeholderTextColor="#888"/>
+            </View>
+            {!cardOtpSent ? (
+              <TouchableOpacity style={styles.goldBtn} onPress={handleLinkCard}><Text style={styles.goldBtnText}>Link Card - Send OTP</Text></TouchableOpacity>
+            ) : (
+              <>
+                <TextInput style={styles.input} placeholder="Card OTP from SMS" value={cardOtp} onChangeText={setCardOtp} keyboardType="numeric" placeholderTextColor="#888"/>
+                <TextInput style={styles.input} placeholder="6-digit Transfer PIN" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/>
+                <TouchableOpacity style={[styles.goldBtn,{backgroundColor:'#0A3D1F',borderWidth:1,borderColor:'#FFD700'}]} onPress={handleVerifyCardOtp}><Text style={[styles.goldBtnText,{color:'#FFD700'}]}>Verify OTP + PIN + Link Card Secure</Text></TouchableOpacity>
+              </>
+            )}
+            {linkedCards.map((c,i)=><Text key={i} style={{color:'#FFD700',marginTop:8,fontSize:11}}>✓ Linked: ****{c.number} {c.bank} - Add Funds/Withdraw OK - OTP + PIN + Biometric</Text>)}
+          </View>
 
-            <TouchableOpacity style={[styles.goldBtn, {marginTop: 10, backgroundColor: '#111', borderWidth: 1, borderColor: '#FFD700'}]} onPress={handleLoginBonus}><Text style={[styles.goldBtnText, {color: '#FFD700'}]}>Daily Login +100 NGN ({loginStreak}/7 = 700 NGN)</Text></TouchableOpacity>
-
-            <TouchableOpacity style={[styles.goldBtn, {marginTop: 15, backgroundColor: referrals.length >= MIN_REF ? '#FFD700' : '#333'}]} onPress={handleWithdrawBonus}><Text style={styles.goldBtnText}>{referrals.length >= MIN_REF ? `Withdraw Bonus to Bank (Max ${WITHDRAW_LIMIT})` : `Need ${MIN_REF - referrals.length} More to Withdraw`}</Text></TouchableOpacity>
-
-            {referrals.map((r, i) => (<Text key={i} style={{color: '#888', marginTop: 8}}>✓ {i+1}. {r.phone} [{r.country}] ID Verified • {r.date}</Text>))}
+          <View style={[styles.convertBox,{marginTop:15,backgroundColor:'#0A3D1F',borderColor:'#FFD700'}]}>
+            <Text style={{color:'#FFD700',fontWeight:'900',fontSize:12}}>CARD SECURITY - Each Person Safe</Text>
+            <Text style={{color:'#fff',fontSize:11,marginTop:6}}>• Login: Phone/Email + OTP{'\n'}• Transfer: 6-digit PIN + Biometric + OTP{'\n'}• Card: Fee ₦{CARD_FEE} for ALL countries (NG, CV, GH, ZA, KE, US, EU){'\n'}• Use card to buy online: Netflix, Amazon, Facebook Ads, Google{'\n'}• Add funds: Bank card → KUDI with OTP{'\n'}• Withdraw: KUDI → Bank card with OTP + PIN + Biometric</Text>
           </View>
         </ScrollView>
+      )}
+
+      {activeTab==='referral' && (
+        <ScrollView style={styles.tabContent}>
+          <Text style={styles.tabTitle}>REFERRAL 800 YOU / 700 FRIEND • 50 + 250k</Text>
+          <View style={styles.convertBox}>
+            <Text style={{color:'#FFD700',fontSize:11}}>Bonus: ₦{referralBonus}/{REF_WITHDRAW_MIN} | Eligible: {eligibleCount}/{MIN_REF} | Friend gets 700</Text>
+            <TextInput style={[styles.input,{marginTop:10}]} placeholder="Referred Phone" value={referredPhone} onChangeText={setReferredPhone} keyboardType="phone-pad" placeholderTextColor="#888"/>
+            <TouchableOpacity style={styles.goldBtn} onPress={handleAddReferral}><Text style={styles.goldBtnText}>Refer - You 800 Pending + Friend 700</Text></TouchableOpacity>
+            <TextInput style={[styles.input,{marginTop:10}]} placeholder="6-digit PIN to withdraw referral" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/>
+            <TouchableOpacity style={[styles.goldBtn,{marginTop:8,backgroundColor:canWithdrawReferral?'#FFD700':'#333'}]} onPress={()=>{if(!canWithdrawReferral) return Alert.alert('Need 50 + 250k'); if(transferPin.length!==6) return Alert.alert('Enter 6-digit PIN'); Alert.alert('Referral Withdraw ✓ - PIN + Biometric');}}><Text style={styles.goldBtnText}>Withdraw Referral - PIN + Biometric + OTP</Text></TouchableOpacity>
+            {referrals.map((r,i)=><View key={i} style={{backgroundColor:'#000',padding:8,borderRadius:8,marginTop:8,borderWidth:1,borderColor:r.eligible?'#00FF00':'#333'}}><Text style={{color:'#fff',fontSize:11}}>{i+1}. {r.phone} {r.idVerified?'KYC✓':'KYC✗'} {r.txCount}/{MIN_TX}</Text><View style={{flexDirection:'row',marginTop:4}}><TouchableOpacity onPress={()=>handleVerifyReferralKYC(i)} style={{backgroundColor:'#FFD700',padding:6,borderRadius:6,marginRight:6}}><Text style={{fontSize:10,fontWeight:'700'}}>KYC</Text></TouchableOpacity><TouchableOpacity onPress={()=>handleAddTransaction(i)} style={{backgroundColor:'#111',padding:6,borderRadius:6,borderWidth:1,borderColor:'#FFD700'}}><Text style={{color:'#FFD700',fontSize:10}}>+Tx</Text></TouchableOpacity></View></View>)}
+          </View>
+        </ScrollView>
+      )}
+
+      {activeTab==='wallets' && (
+        <ScrollView><View style={styles.totalCard}><Text style={styles.totalLabel}>MAIN SAFE + CARD ₦{CARD_FEE}</Text><Text style={styles.totalAmount}>Main: $2,307 • Card: {kudiCard?'Active ✓':'No Card'} • Refer: ₦{referralBonus}</Text></View></ScrollView>
+      )}
+      {activeTab==='bank' && (
+        <View style={styles.tabContent}><Text style={styles.tabTitle}>BANK - SAFE WITH PIN + BIOMETRIC + OTP</Text><View style={styles.convertBox}><TextInput style={styles.input} placeholder="Amount - Any" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888"/><TextInput style={styles.input} placeholder="6-digit PIN" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/><TouchableOpacity style={styles.goldBtn} onPress={()=>Alert.alert('Bank Send - PIN + OTP + Biometric ✓')}><Text style={styles.goldBtnText}>Send to Bank - PIN + Biometric + OTP</Text></TouchableOpacity></View></View>
+      )}
+      {activeTab==='convert' && (
+        <View style={styles.tabContent}><Text style={styles.tabTitle}>CONVERT - PIN + Biometric</Text><View style={styles.convertBox}><TextInput style={styles.input} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888"/><TextInput style={styles.input} placeholder="6-digit PIN" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/><TouchableOpacity style={styles.goldBtn} onPress={()=>Alert.alert('Convert - PIN + Biometric ✓')}><Text style={styles.goldBtnText}>Convert Secure</Text></TouchableOpacity></View></View>
+      )}
+      {activeTab==='send' && (
+        <View style={styles.tabContent}><Text style={styles.tabTitle}>SEND @USERNAME - PIN + Biometric + OTP</Text><View style={styles.convertBox}><TextInput style={styles.input} placeholder="@username" placeholderTextColor="#888"/><TextInput style={styles.input} placeholder="Amount" value={amount} onChangeText={setAmount} keyboardType="numeric" placeholderTextColor="#888"/><TextInput style={styles.input} placeholder="6-digit PIN" value={transferPin} onChangeText={setTransferPin} keyboardType="numeric" secureTextEntry maxLength={6} placeholderTextColor="#888"/><TouchableOpacity style={styles.goldBtn} onPress={()=>Alert.alert('Send - PIN + Biometric + OTP ✓')}><Text style={styles.goldBtnText}>Send Secure</Text></TouchableOpacity></View></View>
       )}
 
       <View style={styles.bottomNav}>
-        <TouchableOpacity onPress={() => setActiveTab('wallets')} style={[styles.navBtn, activeTab === 'wallets' && styles.navActive]}><Text style={styles.navText}>💼</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('convert')} style={[styles.navBtn, activeTab === 'convert' && styles.navActive]}><Text style={styles.navText}>🔄</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('send')} style={[styles.navBtn, activeTab === 'send' && styles.navActive]}><Text style={styles.navText}>👤</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('bank')} style={[styles.navBtn, activeTab === 'bank' && styles.navActive]}><Text style={styles.navText}>🏦</Text></TouchableOpacity>
-        <TouchableOpacity onPress={() => setActiveTab('referral')} style={[styles.navBtn, activeTab === 'referral' && styles.navActive]}><Text style={styles.navText}>🎁</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setActiveTab('wallets')} style={[styles.navBtn,activeTab==='wallets'&&styles.navActive]}><Text style={styles.navText}>💼</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setActiveTab('cards')} style={[styles.navBtn,activeTab==='cards'&&styles.navActive]}><Text style={styles.navText}>💳</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setActiveTab('convert')} style={[styles.navBtn,activeTab==='convert'&&styles.navActive]}><Text style={styles.navText}>🔄</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setActiveTab('send')} style={[styles.navBtn,activeTab==='send'&&styles.navActive]}><Text style={styles.navText}>👤</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setActiveTab('bank')} style={[styles.navBtn,activeTab==='bank'&&styles.navActive]}><Text style={styles.navText}>🏦</Text></TouchableOpacity>
+        <TouchableOpacity onPress={()=>setActiveTab('referral')} style={[styles.navBtn,activeTab==='referral'&&styles.navActive]}><Text style={styles.navText}>🎁</Text></TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#000' },
-  header: { flexDirection: 'row', alignItems: 'center', padding: 15, backgroundColor: '#111', borderBottomWidth: 2, borderBottomColor: '#FFD700' },
-  logoCircle: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  logoK: { fontSize: 28, fontWeight: '900', color: '#0A3D1F' },
-  headerTitle: { color: '#fff', fontSize: 20, fontWeight: '900' },
-  kBig: { fontSize: 28, color: '#FFD700' },
-  udiSmall: { fontSize: 14, color: '#fff' },
-  headerSub: { color: '#888', fontSize: 11 },
-  totalCard: { backgroundColor: '#111', margin: 15, padding: 20, borderRadius: 15, borderWidth: 1, borderColor: '#FFD700' },
-  totalLabel: { color: '#FFD700', fontSize: 11, fontWeight: '700' },
-  totalAmount: { color: '#fff', fontSize: 24, fontWeight: '900', marginTop: 5 },
-  totalSub: { color: '#888', fontSize: 12, marginTop: 5 },
-  walletCard: { flexDirection: 'row', backgroundColor: '#111', marginHorizontal: 15, marginBottom: 10, padding: 15, borderRadius: 12, alignItems: 'center' },
-  walletFlag: { fontSize: 28, marginRight: 12 },
-  walletCode: { color: '#fff', fontWeight: '700' },
-  walletBal: { color: '#FFD700', marginTop: 2 },
-  kMini: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#FFD700', justifyContent: 'center', alignItems: 'center' },
-  kMiniText: { fontWeight: '900', color: '#0A3D1F' },
-  tabContent: { flex: 1, padding: 15 },
-  tabTitle: { color: '#FFD700', fontSize: 18, fontWeight: '900', marginBottom: 15 },
-  convertBox: { backgroundColor: '#111', padding: 20, borderRadius: 15, borderWidth: 1, borderColor: '#333' },
-  label: { color: '#fff', marginBottom: 10 },
-  switchBtn: { color: '#FFD700', marginBottom: 15, fontWeight: '700' },
-  input: { backgroundColor: '#000', color: '#fff', padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#333', marginBottom: 15 },
-  goldBtn: { backgroundColor: '#FFD700', padding: 16, borderRadius: 12, alignItems: 'center' },
-  goldBtnText: { color: '#000', fontWeight: '900', fontSize: 14 },
-  bottomNav: { flexDirection: 'row', backgroundColor: '#111', padding: 10, borderTopWidth: 1, borderTopColor: '#333' },
-  navBtn: { flex: 1, padding: 12, alignItems: 'center', borderRadius: 10, marginHorizontal: 3 },
-  navActive: { backgroundColor: '#FFD700' },
-  navText: { fontWeight: '700', color: '#fff', fontSize: 18 },
+  container:{flex:1,backgroundColor:'#000'},
+  header:{flexDirection:'row',alignItems:'center',padding:12,backgroundColor:'#111',borderBottomWidth:2,borderBottomColor:'#FFD700'},
+  logoCircle:{width:44,height:44,borderRadius:22,backgroundColor:'#FFD700',justifyContent:'center',alignItems:'center',marginRight:10},
+  logoK:{fontSize:24,fontWeight:'900',color:'#0A3D1F'},
+  headerTitle:{color:'#fff',fontSize:16,fontWeight:'900'},
+  kBig:{fontSize:22,color:'#FFD700'},
+  udiSmall:{fontSize:12,color:'#fff'},
+  headerSub:{color:'#888',fontSize:9},
+  totalCard:{backgroundColor:'#111',margin:12,padding:16,borderRadius:12,borderWidth:1,borderColor:'#FFD700'},
+  totalLabel:{color:'#FFD700',fontSize:10,fontWeight:'700'},
+  totalAmount:{color:'#fff',fontSize:16,fontWeight:'900',marginTop:4},
+  tabContent:{flex:1,padding:12},
+  tabTitle:{color:'#FFD700',fontSize:13,fontWeight:'900',marginBottom:10},
+  convertBox:{backgroundColor:'#111',padding:12,borderRadius:12,borderWidth:1,borderColor:'#333'},
+  label:{color:'#fff',marginBottom:8,fontSize:11,fontWeight:'700'},
+  input:{backgroundColor:'#000',color:'#fff',padding:10,borderRadius:8,borderWidth:1,borderColor:'#333',marginBottom:10,fontSize:12},
+  goldBtn:{backgroundColor:'#FFD700',padding:12,borderRadius:10,alignItems:'center'},
+  goldBtnText:{color:'#000',fontWeight:'900',fontSize:11},
+  bottomNav:{flexDirection:'row',backgroundColor:'#111',padding:6,borderTopWidth:1,borderTopColor:'#333'},
+  navBtn:{flex:1,padding:10,alignItems:'center',borderRadius:8,marginHorizontal:2},
+  navActive:{backgroundColor:'#FFD700'},
+  navText:{fontWeight:'700',fontSize:16},
 });
